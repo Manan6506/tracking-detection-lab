@@ -160,6 +160,31 @@ main { padding-bottom: 48px; }
 .map-empty { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; padding: 24px; color: var(--muted); font-size: .92rem; }
 .map-empty[hidden] { display: none; }
 
+/* share + board */
+.share-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; margin: 14px 0 6px; }
+.field { display: grid; gap: 4px; font-size: .875rem; }
+.field > span { color: var(--muted); }
+.share-label-field { flex: 1; min-width: 180px; }
+input[type="text"] { font: inherit; font-size: .95rem; color: var(--text); background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); padding: 8px 10px; width: 100%; }
+input[type="text"]:focus { border-color: var(--accent); outline: 2px solid var(--accent-soft); }
+.share-preview { border: 1px solid var(--border-strong); background: var(--surface-2); padding: 16px; margin-top: 12px; }
+.share-preview .actions { margin-bottom: 0; }
+
+.board-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.board-head h3 { display: flex; align-items: center; gap: 10px; }
+
+.table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.board-table { width: 100%; border-collapse: collapse; font-size: .88rem; min-width: 640px; }
+.board-table th, .board-table td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.board-table thead th { font-size: .74rem; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); background: var(--surface-2); }
+.board-table .dim { color: var(--muted); }
+.src-badge { font-size: .72rem; font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.src-badge[data-src="precise"] { background: var(--err-soft); color: var(--err); }
+.src-badge[data-src="ip"] { background: var(--warn-soft); color: var(--warn); }
+.board-map-link { font-size: .82rem; }
+#board-backend[data-tone="ok"] { color: var(--ok); }
+#board-backend[data-tone="warn"] { color: var(--warn); }
+
 /* facts */
 .facts { margin: 14px 0 0; display: grid; gap: 6px; font-size: .875rem; }
 .facts div { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }

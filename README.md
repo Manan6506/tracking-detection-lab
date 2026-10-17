@@ -14,7 +14,12 @@ It's the "other side" of location detection: not *you* asking for your location,
 2. **Your browser fingerprint** — 19 permission-free signals (screen, timezone, languages, CPU, canvas, WebGL/GPU, fonts…) combined into one near-unique ID that survives clearing cookies. Computed in your browser, shown only to you.
 3. **How the data targets ads** — the audience "segments" a tracker could tag you with, and a mock real-time-bidding request, built from your actual data.
 4. **Precise location** — the one signal that still needs your explicit consent. Allow it and compare with the IP guess.
-5. **How to protect yourself**, and **how it all works** under the hood.
+5. **The group board (opt-in)** — the honest way to "see everyone's location". Each visitor types a name and clicks **Share**, previews exactly what will be posted, and only then does their city/coordinates appear on a shared board you can watch. See [The group board](#the-group-board-sharing-with-friends) below.
+6. **How to protect yourself**, and **how it all works** under the hood.
+
+### Why there's no "silently see my friends' location" button
+
+A link that captures whoever clicks it — grabbing precise location if they allow, falling back to their IP location if they deny — and reports it to the sender is an *IP logger / location grabber*. Even among friends, the person clicking doesn't know their coordinates are being sent to someone else, and the "fall back to IP if they deny" part is specifically designed to locate people who declined. That's the stalkerware pattern this lab teaches people to defend against, so it isn't built. The **group board** does the same demo honestly: each person opts in with a visible preview.
 
 ---
 
@@ -28,12 +33,17 @@ css/styles.css          Styling (light + dark, responsive)
 js/app.js               Orchestrates the sections
 js/server-info.js       Calls /api/whoami
 js/fingerprint.js       Computes the browser fingerprint (client-side, shown to you only)
+js/board.js             The opt-in group board: share preview, post, live list
 js/geolocation.js       Browser precise-location request + friendly errors
 js/coordinates.js       Validation / distance / formatting helpers
 js/map.js               OpenStreetMap embed + link URLs
-lib/collect.js          Shared "what the server sees" logic (used by both servers below)
-api/whoami.js           Vercel serverless function (production)
-dev-server.mjs          Local Node server that mirrors the API (development)
+lib/collect.js          Shared "what the server sees" logic (IP, geo, headers)
+lib/board-store.js      Board storage: Vercel KV if configured, else in-memory
+lib/share-entry.js      Builds one board entry from a share request
+api/whoami.js           GET  — what the server sees about you
+api/share.js            POST — add your result to the board (opt-in)
+api/board.js            GET/DELETE — read or clear the board
+dev-server.mjs          Local Node server mirroring all three APIs
 package.json            type: module; Node 18+
 vercel.json             Vercel config
 ```
@@ -81,6 +91,22 @@ Each teammate who opens the URL sees **their own** IP, city and fingerprint. Com
 
 ---
 
+## The group board (sharing with friends)
+
+The board lets your group actually *see everyone's* locations in one place — the catch, by design, is that each person opts in.
+
+**How it works for a visitor:** open the link → they see their own data → in section 5 they type a name and click **Share my result with the group** → a preview shows exactly what will be posted (name, approximate place, coordinates, and whether it's precise or IP-only) → they confirm. Their entry then appears on the board, which everyone can see and which auto-refreshes.
+
+**To make the board work in production you must add a KV store** (one-time, free, ~2 minutes). Without it, each Vercel serverless instance has its own memory, so entries won't be shared reliably.
+
+1. Open your project on **vercel.com** → **Storage** tab → **Create Database** → **KV** (Upstash Redis) → accept the defaults → **Create**.
+2. When asked, **connect** it to this project. Vercel adds the `KV_REST_API_URL` and `KV_REST_API_TOKEN` environment variables automatically — the code reads them.
+3. **Redeploy** (Deployments tab → ⋯ → Redeploy, or push any commit). The board's footer should now read *"Storage: Vercel KV — shared across everyone."*
+
+**Privacy of the board:** each entry stores a name, coarse location, coordinates, source and time, plus a **masked** IP (e.g. `203.0.x.x`). It auto-expires after 24 hours, the list is capped, and anyone can press **Clear board** to wipe it immediately. Precise coordinates are stored only for people who allowed precise location *and* chose to share.
+
+---
+
 ## Privacy and what this demo does **not** do
 
 - **No storage.** `lib/collect.js` reads each request, replies, and forgets. There is no database, no log file, no profile kept. (Vercel keeps its own standard access logs, as any host does; this app writes none of its own.)
@@ -112,9 +138,13 @@ Each teammate who opens the URL sees **their own** IP, city and fingerprint. Com
 - [ ] Section 3 lists audience segments and a bid request containing your real IP
 - [ ] Section 4: precise location prompts, then (if allowed) shows coordinates and the map
 - [ ] The map renders with a marker once coordinates exist
+- [ ] Section 5: typing a name + **Share** shows a preview; confirming adds a row to the board
+- [ ] A precise share shows a "precise" badge and coordinates; an IP share shows "IP"
+- [ ] **Clear board** empties it
 - [ ] **Clear** wipes every section; **Re-run** reloads the passive reads
 - [ ] At phone width there's no sideways scrolling
 - [ ] On the deployed Vercel URL, a non-local IP shows a real city (test from your phone on mobile data)
+- [ ] On Vercel with KV added, the board footer says "Vercel KV" and two devices see each other's entries
 
 ### What was actually tested during development
 
@@ -127,6 +157,7 @@ Tested in the Claude desktop app's built-in browser (Chromium), desktop and 375 
 - Fingerprint computed live (real Apple M4 GPU via WebGL, canvas hash, 19 signals, ~40 bits).
 - Ad-profile segments and the mock bid request, built from the real collected data.
 - The map rendering with a marker, and the OpenStreetMap link.
+- **The group board end to end** (in-memory backend): `/api/share` and `/api/board` via curl (IP share with a real public IP filled a real city + coordinates); and in the browser, the share preview, confirming an IP share and a precise share, the board listing both with correct badges/masked IP/map link, and **Clear board**.
 - No sideways scrolling at 375 px; no console errors.
 
 **Tested with a stand-in:**
@@ -134,8 +165,9 @@ Tested in the Claude desktop app's built-in browser (Chromium), desktop and 375 
 
 **Not yet tested — please check these yourself:**
 - A **real Vercel deployment** end to end (I can't deploy to your account). The server logic is verified locally with forwarded/geo headers, but you should confirm the live URL.
+- **The KV-backed board on Vercel** — tested only with the in-memory backend locally. Add a KV store and confirm two devices see each other's shares.
 - A **real "Allow"** on your own Mac, and a real GPS/Wi-Fi reading.
-- **Teammates in other locations** opening the deployed URL.
+- **Teammates in other locations** opening the deployed URL and using the board.
 - **Safari and Firefox**, which expose fewer fingerprint signals and may block the canvas read.
 
 ---
@@ -164,3 +196,4 @@ Then create an empty repo on GitHub and follow its "push an existing repository"
 | Location fails on the deployed site | An ad/privacy blocker may be blocking GeoJS, or the IP lookup timed out. Vercel's own geo headers should still fill in the city. |
 | Map is grey for a few seconds | OpenStreetMap tiles are loading; needs internet. |
 | Fingerprint "Canvas: blocked" | A privacy browser (Brave, Tor) blocked the canvas read — a feature, not a bug. |
+| Board entries vanish / friends don't see each other's shares | No KV store on Vercel. Add one (see *The group board*) and redeploy. The footer should say "Vercel KV". |

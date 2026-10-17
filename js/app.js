@@ -20,6 +20,7 @@ import { collectFingerprint } from './fingerprint.js';
 import { requestBrowserPosition, explainGeolocationError, isGeolocationSupported } from './geolocation.js';
 import { validateLatLon, formatCoordinate, formatDistance, distanceMeters, describeAccuracy } from './coordinates.js';
 import { buildEmbedUrl, buildOsmLink, zoomForRadius } from './map.js';
+import { initBoard } from './board.js';
 
 /* ------------------------------ state (in memory only) ------------------------------ */
 const state = { server: null, fingerprint: null, browser: null };
@@ -339,6 +340,14 @@ function init() {
   $('precise-btn').addEventListener('click', requestPreciseLocation);
   $('clear-btn').addEventListener('click', clearAll);
   $('refresh-btn').addEventListener('click', () => { loadServerView(); loadFingerprint(); });
+
+  // The opt-in group board. It asks us for the "best current result" when the
+  // visitor clicks Share: their precise location if they allowed it, else the
+  // IP-based one. Nothing is sent until they click.
+  initBoard(() => ({
+    precise: state.browser ? { lat: state.browser.lat, lon: state.browser.lon, accuracy: state.browser.accuracy } : null,
+    ipLocation: state.server ? state.server.location : null,
+  }));
 
   // Auto-run the two passive reads, to demonstrate they need no click.
   loadServerView();

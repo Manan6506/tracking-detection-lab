@@ -59,6 +59,7 @@
         <li><a href="#fingerprint">Fingerprint</a></li>
         <li><a href="#profile">Ad profile</a></li>
         <li><a href="#precise">Precise location</a></li>
+        <li><a href="#board">Group board</a></li>
         <li><a href="#protect">Protect yourself</a></li>
         <li><a href="#learn">How it works</a></li>
         <li><a href="#privacy">Privacy</a></li>
@@ -143,10 +144,45 @@
       </article>
     </section>
 
-    <!-- ===================== 5. protect ===================== -->
+    <!-- ===================== 5. group board ===================== -->
+    <section id="board" class="section" aria-labelledby="board-title">
+      <div class="section-head">
+        <h2 id="board-title"><span class="step">5</span> The group board (opt-in)</h2>
+        <p>This is the honest way to “see everyone’s location”: each person chooses to post their own result, after seeing exactly what will be shared. Send friends the link and ask them to click Share — their city appears here.</p>
+      </div>
+
+      <article class="card">
+        <div class="notice">
+          <strong>Nothing is posted automatically.</strong> Your result is shared only when you fill in a name and click the button below, and you’ll see a preview first. This is the difference between a demo and a secret tracker: consent.
+        </div>
+        <div class="share-row">
+          <label class="field share-label-field" for="share-label">
+            <span>Show up as (a name or nickname)</span>
+            <input id="share-label" type="text" maxlength="24" autocomplete="off" placeholder="e.g. Rahul">
+          </label>
+          <button type="button" class="btn btn-primary" id="share-btn">Share my result with the group</button>
+        </div>
+        <p class="hint">It shares your precise location if you allowed it in section 4, otherwise your approximate IP location.</p>
+        <div id="share-result"></div>
+      </article>
+
+      <article class="card">
+        <div class="board-head">
+          <h3>Who has shared <span class="status-pill" id="board-count" data-state="idle">…</span></h3>
+          <div class="nav-actions">
+            <button type="button" class="btn btn-small btn-ghost" id="board-refresh">Refresh</button>
+            <button type="button" class="btn btn-small btn-ghost" id="board-clear">Clear board</button>
+          </div>
+        </div>
+        <div id="board-list"></div>
+        <p class="footnote" id="board-backend" data-tone="warn">Storage: …</p>
+      </article>
+    </section>
+
+    <!-- ===================== 6. protect ===================== -->
     <section id="protect" class="section" aria-labelledby="protect-title">
       <div class="section-head">
-        <h2 id="protect-title"><span class="step">5</span> How to reduce what they get</h2>
+        <h2 id="protect-title"><span class="step">6</span> How to reduce what they get</h2>
         <p>None of this makes you invisible, but each step cuts down the signal.</p>
       </div>
       <div class="learn-grid">
@@ -180,7 +216,7 @@
     <!-- ===================== 6. learn ===================== -->
     <section id="learn" class="section" aria-labelledby="learn-title">
       <div class="section-head">
-        <h2 id="learn-title"><span class="step">6</span> How it works</h2>
+        <h2 id="learn-title"><span class="step">7</span> How it works</h2>
       </div>
       <div class="learn-grid">
         <article class="card prose">
@@ -212,7 +248,7 @@
     <!-- ===================== 7. privacy ===================== -->
     <section id="privacy" class="section" aria-labelledby="privacy-title">
       <div class="section-head">
-        <h2 id="privacy-title"><span class="step">7</span> What this demo itself does</h2>
+        <h2 id="privacy-title"><span class="step">8</span> What this demo itself does</h2>
       </div>
       <article class="card prose">
         <ul>
@@ -220,7 +256,8 @@
           <li><strong>No third-party trackers.</strong> The Content Security Policy blocks every connection except to this site itself, the GeoJS IP database, and OpenStreetMap for the map. You can confirm this in your browser’s network tools.</li>
           <li><strong>The fingerprint stays with you.</strong> It is computed in your browser and shown only on your screen; this code never transmits it.</li>
           <li><strong>External services contacted:</strong> <strong>GeoJS</strong> (<code>get.geojs.io</code>) receives your IP to return a city, and only when you are not on localhost; <strong>OpenStreetMap</strong> receives coordinates to draw the map. Each has its own privacy policy.</li>
-          <li><strong>When you deploy it</strong> for teammates, they will each see their own data on their own screen. Tell them it’s a tracking demo — that honesty is the difference between teaching and surveillance.</li>
+          <li><strong>The group board is opt-in.</strong> A visitor’s location is posted only when they type a name and click Share, after a preview. Stored entries keep a masked IP (e.g. <code>203.0.x.x</code>), coarse location and coordinates, and auto-expire after 24 hours. <strong>Clear board</strong> wipes them immediately.</li>
+          <li><strong>When you deploy it</strong> for teammates, they each see their own data on their own screen. Tell them it’s a tracking demo — that honesty is the difference between teaching and surveillance.</li>
         </ul>
       </article>
     </section>

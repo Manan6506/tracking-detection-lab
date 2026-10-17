@@ -20,6 +20,8 @@ import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import { describeVisitor } from './lib/collect.js';
+import { buildEntry } from './lib/share-entry.js';
+import { addEntry, listEntries, clearBoard, backendName } from './lib/board-store.js';
 
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 
@@ -41,15 +43,39 @@ const MIME = {
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
 
-  // The API endpoint — mirrors the Vercel function.
+  // --- API endpoints — mirror the Vercel functions in /api -----------------
+  const reqLike = { headers: req.headers, socketAddress: req.socket.remoteAddress };
+  const sendJson = (status, obj) => {
+    res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify(obj, null, 2));
+  };
+
   if (url.pathname === '/api/whoami') {
-    const result = await describeVisitor({
-      headers: req.headers,
-      socketAddress: req.socket.remoteAddress,
-    });
-    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
-    res.end(JSON.stringify(result, null, 2));
+    sendJson(200, await describeVisitor(reqLike));
     return;
+  }
+
+  if (url.pathname === '/api/share') {
+    if (req.method !== 'POST') return sendJson(405, { error: 'Use POST to share.' });
+    try {
+      const body = await readJsonBody(req);
+      const entry = await addEntry(await buildEntry(reqLike, body));
+      return sendJson(200, { ok: true, entry });
+    } catch (err) {
+      return sendJson(500, { error: 'Could not save to the board: ' + err.message });
+    }
+  }
+
+  if (url.pathname === '/api/board') {
+    try {
+      if (req.method === 'DELETE') {
+        await clearBoard();
+        return sendJson(200, { ok: true, cleared: true });
+      }
+      return sendJson(200, { entries: await listEntries(), backend: backendName() });
+    } catch (err) {
+      return sendJson(500, { error: 'Could not read the board: ' + err.message });
+    }
   }
 
   // Static files. Default to index.html.
@@ -72,6 +98,26 @@ const server = http.createServer(async (req, res) => {
     res.writeHead(404, { 'Content-Type': 'text/plain' }).end('Not found');
   }
 });
+
+/** Read and JSON-parse a request body (with a small size cap). */
+function readJsonBody(req) {
+  return new Promise((resolve, reject) => {
+    let data = '';
+    req.on('data', (chunk) => {
+      data += chunk;
+      if (data.length > 100_000) reject(new Error('Body too large'));
+    });
+    req.on('end', () => {
+      if (!data) return resolve({});
+      try {
+        resolve(JSON.parse(data));
+      } catch {
+        reject(new Error('Invalid JSON body'));
+      }
+    });
+    req.on('error', reject);
+  });
+}
 
 server.listen(port, host, () => {
   console.log(`Tracking Lab (dev) running at http://localhost:${port}`);
