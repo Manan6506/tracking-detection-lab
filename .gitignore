@@ -1,0 +1,16 @@
+# Dependencies (this project has none, but just in case you add some)
+node_modules/
+
+# Vercel
+.vercel/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*
+
+# Editor
+.vscode/
+.idea/

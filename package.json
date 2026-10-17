@@ -1,0 +1,13 @@
+{
+  "name": "tracking-detection-lab",
+  "version": "1.0.0",
+  "private": true,
+  "description": "An educational demo of how websites and embedded third parties see your IP, location and browser fingerprint.",
+  "type": "module",
+  "scripts": {
+    "dev": "node dev-server.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tracking Detection Lab</title>
+  <meta name="description" content="An educational demo of how websites and embedded third parties see your IP, location and browser fingerprint — and how that data targets ads.">
+
+  <!--
+    Content Security Policy: the browser will BLOCK any connection this page tries
+    to make except to the ones listed here. So you can trust that this demo only
+    talks to: itself ('self', for /api/whoami), the GeoJS IP database, and
+    OpenStreetMap for the map tiles. No ad networks, no analytics, no trackers.
+  -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' https://get.geojs.io; frame-src https://www.openstreetmap.org; base-uri 'none'; form-action 'none'">
+
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%23d4452f'/%3E%3Ccircle cx='16' cy='16' r='5' fill='white'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/styles.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+
+  <div class="boot-warning" id="boot-warning" role="alert">
+    <strong>The lab’s JavaScript hasn’t started.</strong>
+    Don’t open <code>index.html</code> directly (a <code>file://</code> address). Run
+    <code>node dev-server.mjs</code> and open <code>http://localhost:3000</code>, or use your deployed Vercel URL.
+    See <code>README.md</code>.
+  </div>
+
+  <header class="site-header">
+    <div class="container header-inner">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+          <circle cx="16" cy="16" r="13" fill="none" stroke="currentColor" stroke-width="2"/>
+          <circle cx="16" cy="16" r="4" fill="currentColor"/>
+          <path d="M16 3v5M16 24v5M3 16h5M24 16h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        </svg>
+        <div>
+          <h1>Tracking Detection Lab</h1>
+          <p class="tagline">What a website — and the trackers inside it — learn about you the moment you arrive.</p>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="consent-banner" role="note">
+    <div class="container">
+      <strong>This is a live educational demo.</strong> It shows <em>you</em> the data that any web server
+      receives about you automatically, plus the browser fingerprint a tracker could build. Nothing is stored
+      and nothing is sent to third parties — see <a href="#privacy">Privacy</a>. It demonstrates tracking so you
+      can understand and defend against it.
+    </div>
+  </div>
+
+  <nav class="section-nav" aria-label="Sections">
+    <div class="container nav-inner">
+      <ul class="nav-links">
+        <li><a href="#server">What they see</a></li>
+        <li><a href="#fingerprint">Fingerprint</a></li>
+        <li><a href="#profile">Ad profile</a></li>
+        <li><a href="#precise">Precise location</a></li>
+        <li><a href="#protect">Protect yourself</a></li>
+        <li><a href="#learn">How it works</a></li>
+        <li><a href="#privacy">Privacy</a></li>
+      </ul>
+      <div class="nav-actions">
+        <button type="button" class="btn btn-small btn-ghost" id="refresh-btn">Re-run</button>
+        <button type="button" class="btn btn-small btn-ghost" id="clear-btn">Clear</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="container">
+
+    <!-- ===================== 1. server view ===================== -->
+    <section id="server" class="section" aria-labelledby="server-title">
+      <div class="section-head">
+        <h2 id="server-title"><span class="step">1</span> What this site already knows</h2>
+        <p>No button, no permission prompt. Just by loading this page, your browser handed the server everything below.</p>
+        <span class="status-pill" id="server-status" data-state="loading">Loading…</span>
+      </div>
+      <article class="card">
+        <div id="server-result"></div>
+      </article>
+
+      <article class="card map-card">
+        <div class="map-toolbar">
+          <p class="map-caption" id="map-caption">No location shown yet.</p>
+          <a id="map-link" class="btn btn-small btn-ghost" target="_blank" rel="noopener noreferrer" hidden>Open in OpenStreetMap ↗</a>
+        </div>
+        <div class="map-frame">
+          <div class="map-empty" id="map-empty">
+            <p><strong>No coordinates yet.</strong> The map appears once an IP or precise location is available.</p>
+          </div>
+          <iframe id="map-iframe" title="Map of the detected location" hidden
+                  sandbox="allow-scripts allow-popups" referrerpolicy="no-referrer" loading="lazy"></iframe>
+        </div>
+        <p class="footnote">IP-based location is an approximation of your network, not your device — it can be off by tens of kilometres, and a VPN or iCloud Private Relay moves it entirely.</p>
+      </article>
+    </section>
+
+    <!-- ===================== 2. fingerprint ===================== -->
+    <section id="fingerprint" class="section" aria-labelledby="fp-title">
+      <div class="section-head">
+        <h2 id="fp-title"><span class="step">2</span> Your browser fingerprint</h2>
+        <p>When cookies are blocked or cleared, trackers recognise you another way: by combining dozens of small, permission-free details into one near-unique ID.</p>
+        <span class="status-pill" id="fp-status" data-state="loading">Loading…</span>
+      </div>
+      <article class="card">
+        <div id="fp-result"></div>
+      </article>
+    </section>
+
+    <!-- ===================== 3. ad profile ===================== -->
+    <section id="profile" class="section" aria-labelledby="profile-title">
+      <div class="section-head">
+        <h2 id="profile-title"><span class="step">3</span> How the data targets ads</h2>
+        <p>The point of collecting all this is to sort you into audiences and auction your attention. Here’s a simplified version, built from your real data above.</p>
+      </div>
+      <article class="card">
+        <div id="profile-result"></div>
+      </article>
+    </section>
+
+    <!-- ===================== 4. precise location ===================== -->
+    <section id="precise" class="section" aria-labelledby="precise-title">
+      <div class="section-head">
+        <h2 id="precise-title"><span class="step">4</span> The one thing they can’t take: precise location</h2>
+        <p>GPS / Wi-Fi-level location is genuinely protected — a page (or an ad inside it) gets it only if you explicitly allow it. Try it and compare with the IP guess.</p>
+      </div>
+      <article class="card">
+        <div class="notice">
+          <strong>Before you click:</strong> your browser will ask whether to share your precise location. If you allow it, your coordinates are shown only on this page and are not stored. This is the one location signal that requires your consent.
+        </div>
+        <div class="actions">
+          <button type="button" class="btn btn-primary" id="precise-btn">Ask my browser for precise location</button>
+        </div>
+        <div id="precise-result"></div>
+        <dl class="facts">
+          <div><dt>This page’s origin</dt><dd><code id="fact-origin">…</code></dd></div>
+          <div><dt>Secure context (needed for precise location)</dt><dd id="fact-secure">…</dd></div>
+        </dl>
+      </article>
+    </section>
+
+    <!-- ===================== 5. protect ===================== -->
+    <section id="protect" class="section" aria-labelledby="protect-title">
+      <div class="section-head">
+        <h2 id="protect-title"><span class="step">5</span> How to reduce what they get</h2>
+        <p>None of this makes you invisible, but each step cuts down the signal.</p>
+      </div>
+      <div class="learn-grid">
+        <article class="card prose">
+          <h3>Hide or change your IP</h3>
+          <ul>
+            <li><strong>A VPN</strong> replaces your IP with the VPN server’s, so IP geolocation points at the server, not you.</li>
+            <li><strong>iCloud Private Relay</strong> (Safari, paid iCloud) hides your IP from the sites you visit.</li>
+            <li><strong>Tor Browser</strong> routes through several relays, so sites see an exit node far away.</li>
+          </ul>
+        </article>
+        <article class="card prose">
+          <h3>Resist fingerprinting</h3>
+          <ul>
+            <li><strong>Tor Browser</strong> and <strong>Firefox</strong> (with “resist fingerprinting”) make many users look identical.</li>
+            <li><strong>Brave</strong> randomises canvas/WebGL readings.</li>
+            <li>Keeping your browser stock (no rare fonts or extensions that alter pages) makes you blend in — ironically, a very customised browser is easier to single out.</li>
+          </ul>
+        </article>
+        <article class="card prose">
+          <h3>Cut the trackers themselves</h3>
+          <ul>
+            <li><strong>uBlock Origin</strong> or built-in blocking (Brave, Firefox, Safari) stops much ad/analytics code from loading at all.</li>
+            <li>Block third-party cookies — Safari and Firefox do by default.</li>
+            <li>Watch this lab’s effect: run it with a blocker on, and the IP lookup may be blocked too.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <!-- ===================== 6. learn ===================== -->
+    <section id="learn" class="section" aria-labelledby="learn-title">
+      <div class="section-head">
+        <h2 id="learn-title"><span class="step">6</span> How it works</h2>
+      </div>
+      <div class="learn-grid">
+        <article class="card prose">
+          <h3>Why every server sees your IP</h3>
+          <p>For a server to send a page back, the request must carry a return address — your public IP. It’s part of how the internet routes traffic, so no permission could be asked for it without breaking the web. Any server you contact sees it: the website, and every third party whose code the site embeds.</p>
+          <p>Companies map IP ranges to places using registry records and measurements. That’s “IP geolocation”: fast, free, no consent, and only city-accurate.</p>
+        </article>
+        <article class="card prose">
+          <h3>How one tracker sees you across many sites</h3>
+          <p>A site doesn’t sell your data by emailing it. Instead it <em>embeds</em> an ad or analytics company’s script or pixel. That third party’s code runs on thousands of sites, so <strong>the same company</strong> receives a request — with your IP, a cookie or fingerprint, and the <code>Referer</code> page — from each site you visit. Stitching those together is how a profile forms.</p>
+          <p>This demo deliberately can’t do that: it only sees this one page, and it embeds no real trackers.</p>
+        </article>
+        <article class="card prose">
+          <h3>Cookies vs. fingerprints</h3>
+          <p>A <strong>cookie</strong> is an ID the tracker stores in your browser; you can clear it or block it. A <strong>fingerprint</strong> isn’t stored — it’s recomputed from your device’s traits each visit, so clearing cookies doesn’t shake it. That’s why your original brief’s concern about fingerprinting matters: it’s the fallback when cookies fail.</p>
+        </article>
+        <article class="card prose">
+          <h3>What a page still cannot do</h3>
+          <ul>
+            <li>Read your precise location without the permission prompt in section 4.</li>
+            <li>List your Wi-Fi networks, scan your home network, or read other devices.</li>
+            <li>See your other tabs, your history, or your files (beyond ones you choose).</li>
+            <li>Get your name or exact address from your IP alone.</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <!-- ===================== 7. privacy ===================== -->
+    <section id="privacy" class="section" aria-labelledby="privacy-title">
+      <div class="section-head">
+        <h2 id="privacy-title"><span class="step">7</span> What this demo itself does</h2>
+      </div>
+      <article class="card prose">
+        <ul>
+          <li><strong>No storage, no profiles kept.</strong> The server reads your request, replies to you, and forgets. There is no database and no visitor log in this code.</li>
+          <li><strong>No third-party trackers.</strong> The Content Security Policy blocks every connection except to this site itself, the GeoJS IP database, and OpenStreetMap for the map. You can confirm this in your browser’s network tools.</li>
+          <li><strong>The fingerprint stays with you.</strong> It is computed in your browser and shown only on your screen; this code never transmits it.</li>
+          <li><strong>External services contacted:</strong> <strong>GeoJS</strong> (<code>get.geojs.io</code>) receives your IP to return a city, and only when you are not on localhost; <strong>OpenStreetMap</strong> receives coordinates to draw the map. Each has its own privacy policy.</li>
+          <li><strong>When you deploy it</strong> for teammates, they will each see their own data on their own screen. Tell them it’s a tracking demo — that honesty is the difference between teaching and surveillance.</li>
+        </ul>
+      </article>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <p>Tracking Detection Lab — an educational prototype for understanding and defending against web tracking.</p>
+      <p class="muted">IP data: GeoJS / Vercel edge. Map: © OpenStreetMap contributors.</p>
+    </div>
+  </footer>
+</body>
+</html>
